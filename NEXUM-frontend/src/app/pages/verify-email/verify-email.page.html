@@ -1,0 +1,31 @@
+<section class="flow-page">
+  <a class="back-link" routerLink="/catalog">← Volver al catálogo</a>
+  <div class="flow-card verify-card">
+    <span class="eyebrow">TU CUENTA NEXUM</span>
+    <h1>Verifica tu correo<span>.</span></h1>
+    @if (done()) {
+      <div role="status">
+        <span class="success-mark">✓</span><h2>Tu correo está verificado</h2>
+        <p>Inicia sesión para continuar con tu aprendizaje.</p>
+        <a class="button button-dark wide" routerLink="/login" [queryParams]="{ returnUrl: returnUrl }">Iniciar sesión</a>
+      </div>
+    } @else {
+      <p>Solicita un código e ingresa los 6 dígitos que recibas por correo. El código caduca en 15 minutos.</p>
+      <form #sendForm="ngForm" (ngSubmit)="send()">
+        <label for="verify-email">Correo electrónico</label>
+        <input id="verify-email" name="email" type="email" [(ngModel)]="email" required email maxlength="255" autocomplete="email" />
+        <button class="button button-dark wide" type="submit" [disabled]="sendForm.invalid || busy() || resendSeconds() > 0">
+          {{ busy() ? 'Procesando…' : resendSeconds() > 0 ? 'Reenviar en ' + resendSeconds() + ' s' : sent() ? 'Reenviar código' : 'Enviar código' }}
+        </button>
+      </form>
+      @if (sent()) { <p role="status">Si existe una cuenta pendiente con ese correo, recibirás un código de verificación. Revisa también la carpeta de spam. Si solicitas otro código, utiliza el más reciente.</p> }
+      <form #codeForm="ngForm" (ngSubmit)="confirm()">
+        <label for="verify-code">Código de verificación</label>
+        <input id="verify-code" name="codigo" type="text" inputmode="numeric" autocomplete="one-time-code"
+          [(ngModel)]="codigo" required pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="000000" />
+        <button class="button button-dark wide" type="submit" [disabled]="codeForm.invalid || busy()">Verificar mi correo</button>
+      </form>
+      @if (error()) { <p class="alert" role="alert">{{ error() }}</p> }
+    }
+  </div>
+</section>

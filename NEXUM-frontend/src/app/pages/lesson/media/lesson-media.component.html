@@ -1,0 +1,28 @@
+<section class="lesson-media" aria-label="Videos y materiales de la lección">
+  @if (video()) {
+    <div class="media-heading"><div><span class="eyebrow">APRENDE A TU RITMO</span><h2>Video de la lección</h2></div>
+      @if (auth.isAdmin()) { <button type="button" class="text-button" (click)="removeVideo()" [disabled]="busy()">Quitar video</button> }
+    </div>
+    @if (videoSource()) {
+      <video class="lesson-video" controls playsinline preload="metadata" [src]="videoSource()" (error)="playbackError()" aria-label="Video de la lección">Tu navegador no puede reproducir este video.</video>
+    } @else if (isLocalVideo()) {
+      <div class="video-placeholder"><span aria-hidden="true">▷</span><h3>Una nueva forma de aprender</h3><p>Prepara el video y continúa a tu ritmo.</p><button class="button button-dark" type="button" (click)="loadVideo()" [disabled]="loadingVideo()">{{ loadingVideo() ? 'Cargando video' + (downloadProgress() !== null ? ' · ' + downloadProgress() + ' %' : '…') : 'Cargar video →' }}</button></div>
+    } @else if (externalUrl(video()); as url) {
+      <a class="button button-lime" [href]="url" target="_blank" rel="noopener noreferrer">Abrir video ↗</a>
+    }
+  }
+  @if (auth.isAdmin()) {
+    <div class="media-upload"><div><strong>{{ video() ? 'Cambiar video' : 'Añadir video a la lección' }}</strong><p>MP4 de hasta 100 MB. Se guarda al subirlo.</p></div><label class="button button-lime file-button">{{ busy() ? 'Procesando…' : 'Subir video' }}<input type="file" accept="video/mp4,.mp4" aria-label="Subir video de la lección" (change)="upload($event, 'video')" [disabled]="busy()"></label></div>
+  }
+  <div class="media-heading materials-heading"><div><span class="eyebrow">PARA SEGUIR APRENDIENDO</span><h2>Materiales del curso</h2></div></div>
+  @if (loadingMaterials()) { <p role="status">Cargando materiales…</p> }
+  @else if (materials().length) {
+    <ul class="material-list">@for (material of materials(); track material.id) {<li><span class="document-mark" aria-hidden="true">▤</span><div><strong>{{ material.nombre }}</strong><small>{{ material.tipoArchivo === 'application/pdf' ? 'Documento PDF' : material.tipoArchivo || 'Material complementario' }}</small></div>
+      @if (externalUrl(material.urlArchivo); as url) { <a class="text-button" [href]="url" target="_blank" rel="noopener noreferrer">Abrir ↗</a> } @else { <button class="text-button" type="button" (click)="download(material)" [disabled]="busy()">Descargar ↓</button> }
+      @if (auth.isAdmin()) { <button class="remove-material" type="button" (click)="removeMaterial(material)" [disabled]="busy()" [attr.aria-label]="'Quitar ' + material.nombre">×</button> }
+    </li>}</ul>
+  } @else { <p class="materials-empty">{{ auth.isAdmin() ? 'Añade una guía, una lectura o un ejercicio para acompañar esta lección.' : 'Los materiales complementarios aparecerán aquí cuando estén disponibles.' }}</p> }
+  @if (auth.isAdmin()) { <div class="media-upload"><div><strong>Añadir material</strong><p>PDF de hasta 10 MB. Se guarda al subirlo.</p></div><label class="button button-lime file-button">{{ busy() ? 'Procesando…' : 'Subir PDF' }}<input type="file" accept="application/pdf,.pdf" aria-label="Subir material PDF" (change)="upload($event, 'materiales')" [disabled]="busy()"></label></div> }
+  @if (notice()) { <p class="media-notice" role="status">{{ notice() }}</p> }
+  @if (error()) { <p class="media-error" role="alert">{{ error() }}</p> }
+</section>

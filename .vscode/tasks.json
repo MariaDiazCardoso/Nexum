@@ -1,0 +1,71 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "NEXUM: backend",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/iniciar-nexum.ps1",
+        "-Servicio",
+        "Backend"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/NEXUM-backend"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "NEXUM: frontend",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/iniciar-nexum.ps1",
+        "-Servicio",
+        "Frontend"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/NEXUM-frontend"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "NEXUM: iniciar todo",
+      "dependsOn": [
+        "NEXUM: backend",
+        "NEXUM: frontend"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "NEXUM: configurar Gmail",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/iniciar-nexum.ps1",
+        "-Servicio",
+        "Correo"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

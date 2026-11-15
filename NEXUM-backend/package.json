@@ -1,0 +1,9 @@
+{
+  "name": "nexum-backend",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Atajos para ejecutar el backend Java de NEXUM en Windows.",
+  "scripts": {
+    "start": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ../iniciar-nexum.ps1 -Servicio Backend"
+  }
+}
