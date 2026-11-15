@@ -1,0 +1,56 @@
+<div class="app-shell">
+  <header class="site-header">
+    <a class="brand" routerLink="/catalog" aria-label="Nexum, ir al catálogo">
+      <img class="brand-logo" [src]="darkMode() ? '/brand/nexum-logo-oscuro.svg' : '/brand/nexum-logo-claro.svg'" alt="Nexum" width="160" height="45" />
+    </a>
+
+    <nav class="main-nav" aria-label="Navegación principal">
+      <a routerLink="/catalog" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        Explorar cursos
+      </a>
+      @if (auth.isAuthenticated() && !auth.isAdmin()) {
+        <a routerLink="/my-learning" routerLinkActive="active">Mis cursos</a>
+      }
+      @if (auth.isAdmin()) {
+        <a routerLink="/admin" routerLinkActive="active">Panel administrador</a>
+      }
+    </nav>
+
+    <div class="header-actions">
+      <button class="theme-toggle" type="button" (click)="toggleTheme()" [attr.aria-pressed]="darkMode()" [attr.aria-label]="darkMode() ? 'Activar modo claro' : 'Activar modo oscuro'" [title]="darkMode() ? 'Modo claro' : 'Modo oscuro'">
+        <span aria-hidden="true">{{ darkMode() ? '☀' : '☾' }}</span>
+      </button>
+      @if (auth.isAuthenticated()) {
+        <a class="profile-link" routerLink="/profile" aria-label="Abrir mi perfil" title="Mi perfil">
+          <span class="header-avatar" aria-hidden="true">
+            @if (avatarImage(); as image) {
+              <img [src]="image" alt="" (error)="failedAvatar.set(image)" />
+            } @else if (initials()) {
+              {{ initials() }}
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
+            }
+          </span>
+          <span class="profile-name">{{ auth.user()?.nombre || 'Mi perfil' }}</span>
+        </a>
+        <button class="header-login logout-button" type="button" (click)="logout()">Cerrar sesión</button>
+      } @else {
+        <a class="header-login" routerLink="/login">Iniciar sesión</a>
+        <a class="button button-dark button-small" routerLink="/register">Crear cuenta</a>
+      }
+    </div>
+  </header>
+
+  <main>
+    <router-outlet />
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand brand-footer" routerLink="/catalog">
+      <img class="brand-logo" [src]="darkMode() ? '/brand/nexum-logo-oscuro.svg' : '/brand/nexum-logo-claro.svg'" alt="Nexum" width="160" height="45" />
+    </a>
+    <span>Aprender algo nuevo cambia todo.</span>
+    <a class="text-link" routerLink="/verify-certificate">Verificar certificado</a>
+    <span>© {{ currentYear }} Nexum</span>
+  </footer>
+</div>

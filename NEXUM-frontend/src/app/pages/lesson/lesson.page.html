@@ -1,0 +1,102 @@
+<div class="content lesson-page">
+  <a class="text-link" [routerLink]="['/courses', course()?.id || '']">← Volver al curso</a>
+  @if (loading()) {
+    <p role="status">Cargando la lección…</p>
+  } @else if (error()) {
+    <article class="card">
+      <h1>No pudimos abrir esta lección.</h1>
+      <p role="alert">{{ error() }}</p>
+      <button class="button button-dark" type="button" (click)="load()">Volver a intentar</button>
+    </article>
+  } @else if (lesson(); as lesson) {
+    <header>
+      <p class="eyebrow">{{ course()?.titulo }}</p>
+      <h1>{{ lesson.titulo }}<span>.</span></h1>
+      <p>
+        {{ lesson.duracionEstimada || 'A tu ritmo' }} · {{ lesson.xpOtorgada ?? 0 }} XP al completar
+      </p>
+    </header>
+    @if (canRead()) {
+      <div class="lesson-grid">
+        <article class="card reading">
+          @if (safeUrl(lesson.imagenUrl); as image) {
+            <img class="lesson-image" [src]="image" [alt]="lesson.titulo" />
+          }
+          @if (lesson.contenidoTexto) {
+            <p class="lesson-text">{{ lesson.contenidoTexto }}</p>
+          }
+          <app-lesson-media [lessonId]="lesson.id" [videoUrl]="lesson.videoUrl"
+            (videoChanged)="this.lesson.update(value => value ? { ...value, videoUrl: $event } : null)" />
+          @if (!lesson.contenidoTexto && !lesson.videoUrl) {
+            <p>Esta lección todavía no tiene contenido publicado.</p>
+          }
+          @if (lesson.retoPractico) {
+            <div class="challenge">
+              <p class="eyebrow">TU RETO PRÁCTICO</p>
+              <p class="lesson-text">{{ lesson.retoPractico }}</p>
+            </div>
+          }
+          <app-lesson-exam [lessonId]="lesson.id" (completionAllowed)="evaluationAllowed.set($event)" />
+          @if (enrollment() && !auth.isAdmin()) {
+            <button
+              class="button button-dark"
+              type="button"
+              [disabled]="saving() || completed() || !evaluationAllowed()"
+              (click)="complete()"
+            >
+              {{
+                completed()
+                  ? 'Lección completada ✓'
+                  : saving()
+                    ? 'Guardando…'
+                    : 'Marcar como completada'
+              }}
+            </button>
+          } @else {
+            <p>
+              Estás consultando el contenido como administrador. Para registrar progreso necesitas
+              una inscripción activa.
+            </p>
+          }
+          @if (enrollment()?.estado === 'COMPLETADA') { <a class="button button-lime" routerLink="/certificates">Ver mi certificado →</a> }
+          @if (completed() && nextLesson(); as next) {
+            <a
+              class="text-link next-link"
+              [routerLink]="['/courses', course()?.id, 'lessons', next.id]"
+              >Continuar con {{ next.titulo }} →</a
+            >
+          }
+          @if (notice()) {
+            <p class="notice" role="status">{{ notice() }}</p>
+          }
+        </article>
+        <aside class="card lesson-index">
+          <p class="eyebrow">TU RECORRIDO</p>
+          <h2>Paso a paso.</h2>
+          <p>{{ courseProgress() }} % completado</p>
+          <progress [value]="courseProgress()" max="100" aria-label="Progreso del curso"></progress>
+          <p>
+            <strong>{{ auth.user()?.puntosXp ?? 0 }}</strong> XP acumulados
+          </p>
+          @for (item of lessons(); track item.id) {
+            <a
+              class="lesson-link"
+              [class.current]="item.id === lesson.id"
+              [routerLink]="['/courses', course()?.id, 'lessons', item.id]"
+              >{{ item.titulo }}</a
+            >
+          }
+          <a class="text-link" routerLink="/my-learning">Mis cursos →</a>
+        </aside>
+      </div>
+    } @else {
+      <article class="card">
+        <h2>Un paso antes de empezar.</h2>
+        <p>Necesitas una inscripción activa para acceder a esta lección.</p>
+        <a class="button button-dark" [routerLink]="['/courses', course()?.id]"
+          >Ver opciones del curso →</a
+        >
+      </article>
+    }
+  }
+</div>

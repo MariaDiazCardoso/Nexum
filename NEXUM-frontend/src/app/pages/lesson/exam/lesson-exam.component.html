@@ -1,0 +1,38 @@
+<section class="evaluation" aria-label="Evaluación de la lección">
+ @if (loading()) { <p role="status">Consultando evaluación…</p> }
+ @else if (state(); as s) {
+  @if (auth.isAdmin()) {
+   <header class="exam-heading"><div><span class="eyebrow">GESTIÓN DE EVALUACIONES</span><h2>{{ s.examen ? s.examen.titulo : 'Prepara una evaluación' }}</h2></div>@if (s.examen) { <span class="status-pill">{{ s.examen.publicado ? 'Publicada' : 'Borrador' }}</span> }</header>
+   @if (s.examen && !s.puedeEditar) { <p class="exam-note">Esta evaluación ya tiene intentos. Sus preguntas y configuración se conservan para mantener los resultados.</p> }
+   @if (s.examen && !s.puedeEditar && s.examen.intentosMaximos !== null) { <form class="exam-editor" (ngSubmit)="extendAttempts()"><label>Ampliar intentos permitidos<input name="extendAttempts" type="number" [(ngModel)]="attempts" [min]="s.examen.intentosMaximos + 1" step="1"><small>Nuevo límite total. Vacío permite intentos ilimitados.</small></label><button class="button button-lime" type="submit" [disabled]="busy()">Ampliar intentos</button></form> }
+   @if (!s.examen || (s.puedeEditar && !s.examen.publicado)) {
+    <form class="exam-editor" (ngSubmit)="saveExam()"><label>Título<input name="examTitle" [(ngModel)]="title" required maxlength="255"></label><div class="editor-columns"><label>Intentos permitidos<input name="examAttempts" type="number" [(ngModel)]="attempts" min="1" step="1"><small>Vacío permite intentos ilimitados.</small></label><label>Puntaje mínimo (%)<input name="examThreshold" type="number" [(ngModel)]="threshold" min="0" max="100" step="0.01" required></label></div><button class="button button-lime" type="submit" [disabled]="busy()">Guardar configuración</button></form>
+   }
+   @if (s.examen) {
+    <div class="question-list">@for (q of s.preguntas; track q.id; let n = $index) { <article><div class="question-title"><strong>{{ n + 1 }}. {{ q.textoPregunta }}</strong>@if (editable()) { <div><button class="text-button" type="button" (click)="editQuestion(q)" [disabled]="busy()">Editar</button><button class="text-button danger" type="button" (click)="removeQuestion(q)" [disabled]="busy()">Quitar</button></div> }</div><ul>@for (o of q.opciones; track o.id) { <li [class.correct]="o.esCorrecta">{{ o.esCorrecta ? '✓ ' : '' }}{{ o.textoOpcion }}</li> }</ul></article> }</div>
+    @if (editable()) {
+     <form class="exam-editor question-editor" (ngSubmit)="saveQuestion()"><h3>{{ questionId ? 'Editar pregunta' : 'Añadir pregunta' }}</h3><label>Pregunta<textarea name="questionText" [(ngModel)]="questionText" required maxlength="5000" rows="3"></textarea></label><p class="editor-help">Marca una única respuesta correcta.</p>
+      @for (option of options; track $index; let i = $index) { <div class="option-editor"><label class="correct-selector"><input type="radio" name="correctOption" [value]="i" [(ngModel)]="correct" [attr.aria-label]="'Marcar opción ' + (i + 1) + ' como correcta'"></label><input [name]="'option-' + i" [(ngModel)]="options[i]" required maxlength="500" [attr.aria-label]="'Texto de opción ' + (i + 1)">@if (options.length > 2) { <button type="button" class="text-button danger" (click)="removeOption(i)" [attr.aria-label]="'Quitar opción ' + (i + 1)">×</button> }</div> }
+      <button type="button" class="text-button" (click)="addOption()" [disabled]="options.length >= 10 || busy()">+ Añadir opción</button><label>Explicación (opcional)<textarea name="explanation" [(ngModel)]="explanation" maxlength="5000" rows="2"></textarea></label><div class="editor-actions"><button type="submit" class="button button-dark" [disabled]="busy()">Guardar pregunta</button>@if (questionId) { <button type="button" class="text-button" (click)="clearQuestion()">Cancelar edición</button> }</div>
+     </form>
+    }
+    @if (s.puedeEditar) { <div class="publication-bar"><p>{{ s.examen.publicado ? 'Retira la publicación para editar antes de que haya intentos.' : 'Publica cuando todas las preguntas estén listas. La evaluación será obligatoria para completar esta lección.' }}</p><button class="button button-dark" type="button" (click)="publish()" [disabled]="busy() || (!s.examen.publicado && !s.preguntas.length)">{{ s.examen.publicado ? 'Retirar publicación' : 'Publicar evaluación' }}</button></div> }
+   }
+  } @else if (s.examen; as exam) {
+   <header class="exam-heading"><div><span class="eyebrow">PON EN PRÁCTICA LO APRENDIDO</span><h2>{{ exam.titulo }}</h2></div><span class="status-pill">{{ s.preguntas.length }} preguntas</span></header>
+   <p class="exam-note">Aprueba con {{ exam.puntajeMinimoAprobacion ?? 70 }} % para completar la lección. {{ remaining() === null ? 'Intentos ilimitados.' : 'Intentos disponibles: ' + remaining() + '.' }}</p>
+   @if (score(); as result) { <div class="exam-result" [class.passed]="s.aprobado" role="status"><strong>{{ s.aprobado ? '¡Evaluación aprobada!' : 'Sigue practicando' }}</strong><span>{{ result.puntaje }} %</span><p>{{ s.aprobado ? 'Ya puedes marcar esta lección como completada.' : 'Repasa el contenido antes de volver a intentarlo.' }}</p></div> }
+   @if (currentAttempt(); as attempt) {
+    <form (ngSubmit)="submit()"><p class="attempt-label">Intento {{ attempt.numero }} · Selecciona una respuesta por pregunta</p>
+     @for (q of s.preguntas; track q.id; let n = $index) { <fieldset class="student-question"><legend>{{ n + 1 }}. {{ q.textoPregunta }}</legend>@for (o of q.opciones; track o.id) { <label [class.selected]="answers()[q.id] === o.id"><input type="radio" [name]="q.id" [checked]="answers()[q.id] === o.id" (change)="choose(q.id, o.id)" [disabled]="busy()"><span>{{ o.textoOpcion }}</span></label> }</fieldset> }
+     <button class="button button-dark" type="submit" [disabled]="busy()">{{ busy() ? 'Enviando…' : 'Enviar evaluación →' }}</button>
+    </form>
+   } @else if (!s.aprobado && (remaining() === null || remaining()! > 0)) { <button class="button button-dark" type="button" (click)="start()" [disabled]="busy()">{{ busy() ? 'Preparando…' : score() ? 'Volver a intentarlo' : 'Comenzar evaluación →' }}</button> }
+   @else if (!s.aprobado) { <p class="exam-note">Ya utilizaste los intentos permitidos. Consulta con el administrador para continuar.</p> }
+   @if (feedback().length) { <div class="answer-feedback"><h3>Tu resultado por pregunta</h3>@for (r of feedback(); track r.preguntaId; let n = $index) { <p><strong>Pregunta {{ n + 1 }} · {{ r.correcta ? 'Respuesta correcta' : 'Repasa este tema' }}</strong>@if (r.explicacion) { <span>{{ r.explicacion }}</span> }</p> }</div> }
+   @if (s.intentos.length) { <details class="attempt-history"><summary>Historial de intentos</summary>@for (i of s.intentos; track i.id) { <p>Intento {{ i.numero }} · {{ i.finalizadoEn ? i.puntaje + ' % · ' + (i.aprobado ? 'Aprobado' : 'No aprobado') : 'En curso' }}</p> }</details> }
+  }
+ }
+ @if (notice()) { <p class="exam-success" role="status">{{ notice() }}</p> }
+ @if (error()) { <p class="exam-error" role="alert">{{ error() }}</p> }
+</section>

@@ -1,0 +1,29 @@
+<section class="plans-section" id="planes-ia" aria-labelledby="plans-title">
+  <header class="plans-heading">
+    <span class="eyebrow">UN IMPULSO PARA SEGUIR APRENDIENDO</span>
+    <h2 id="plans-title">Potencia tu aprendizaje con <span>IA.</span></h2>
+    <p>Compara los planes y elige cuántos créditos necesitas para tu aprendizaje.</p>
+  </header>
+  @if (loading()) {
+    <p class="plans-state" role="status">Cargando planes de IA…</p>
+  } @else if (failed()) {
+    <div class="plans-state" role="alert"><p>No pudimos cargar los planes de IA.</p><button class="button button-dark" (click)="load()">Volver a intentar</button></div>
+  } @else if (!plans().length) {
+    <p class="plans-state">Pronto habrá nuevos planes de IA disponibles.</p>
+  } @else {
+    <div class="plans-grid">
+      @for (plan of plans(); track plan.id; let i = $index) {
+        <article class="plan-card" [class.plan-accent]="i % 2 === 1">
+          <span class="plan-icon" aria-hidden="true">✳</span>
+          <h3>{{ plan.nombre }}</h3>
+          <p class="plan-description">{{ plan.creditosPorPeriodo | number }} créditos para acompañar tu aprendizaje en cada período.</p>
+          <div class="plan-price"><strong>{{ plan.precio | currency:plan.moneda:(plan.moneda === 'PEN' ? 'S/' : plan.moneda):'1.2-2' }}</strong><span>/ {{ period(plan.periodo) }}</span></div>
+          <span class="currency-note">Precio en {{ plan.moneda }}</span>
+          <ul><li>{{ plan.creditosPorPeriodo | number }} créditos por {{ period(plan.periodo) }}</li><li>Período {{ plan.periodo }}</li><li>Suscripción de IA independiente de los cursos</li></ul>
+          <button class="button" [class.button-dark]="i % 2 === 1" [class.button-lime]="i % 2 === 0" (click)="choose(plan)">Elegir {{ plan.nombre }} <span aria-hidden="true">→</span></button>
+        </article>
+      }
+    </div>
+    <p class="plans-note">Explora sin cuenta. Para elegir un plan, inicia sesión o regístrate. Los cursos se adquieren por separado.</p>
+  }
+</section>

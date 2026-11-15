@@ -1,0 +1,50 @@
+<section class="flow-page">
+  <a class="back-link" routerLink="/catalog">← Volver al catálogo</a>
+  <span class="eyebrow">TU SIGUIENTE PASO EN NEXUM</span><h1>Elige cómo pagar<span>.</span></h1>
+  <p class="intro">Completa tus datos y revisa el resumen de tu selección.</p>
+  @if (loading()) { <p role="status">Cargando resumen…</p> }
+  @if (error()) { <p class="alert" role="alert">{{ error() }}</p> }
+  @if (product(); as p) {
+    @if (complete()) {
+      <div class="flow-card success" role="status"><span class="success-mark">◷</span><h2>Pago pendiente</h2><p>Revisaste los datos para {{ p.titulo }}.</p><p>Tu acceso se habilitará cuando se confirme el pago.</p><a class="button button-dark" routerLink="/catalog">Volver al catálogo</a></div>
+    } @else {
+      <div class="checkout-grid">
+        <div class="flow-card">
+          <ol class="steps" aria-label="Pasos del pago"><li [class.current]="step()===1">1 · Método</li><li [class.current]="step()===2">2 · Datos</li><li [class.current]="step()===3">3 · Revisión</li></ol>
+          @if (auth.isAdmin()) { <p class="alert">Las compras son para cuentas de estudiante.</p> }
+          @if (step() === 1) {
+            <h2>Método de pago</h2><p>Selecciona cómo quieres adquirir {{p.tipo==='ia'?'tu plan de IA':'tu curso'}}.</p>
+            <fieldset class="payment-methods"><legend class="sr-only">Selecciona un método de pago</legend>
+              @for (item of methods; track item.id) {
+                <label class="method" [class.chosen]="method===item.id"><span class="method-icon" aria-hidden="true">{{item.icon}}</span><span><strong>{{item.title}}</strong><small>{{item.description}}</small></span><input type="radio" name="method" [value]="item.id" [(ngModel)]="method" /></label>
+              }
+            </fieldset>
+            <button class="button button-dark wide" type="button" [disabled]="!method || auth.isAdmin()" (click)="next()">Continuar →</button>
+          } @else if (step() === 2) {
+            <h2>{{method==='TARJETA'?'Datos de tu tarjeta':method==='BILLETERA'?'Tu billetera digital':'Transferencia bancaria'}}</h2>
+            <form class="payment-form" (ngSubmit)="next()" novalidate>
+              @if(method==='TARJETA') {
+                <div class="card-preview" aria-hidden="true"><div class="card-top"><span class="chip">▦</span><strong>{{cardBrand()}}</strong></div><span class="card-digits">•••• &nbsp; •••• &nbsp; •••• &nbsp; {{cardSuffix() || '••••'}}</span><div class="card-bottom"><span>{{holder || 'NOMBRE DEL TITULAR'}}</span><span>{{expiry || 'MM/AA'}}</span></div></div>
+                <label for="card-holder">Nombre del titular</label><input id="card-holder" name="holder" [(ngModel)]="holder" maxlength="100" autocomplete="cc-name" placeholder="Como aparece en tu tarjeta" [attr.aria-invalid]="attempted() && holder.trim().length<3" aria-describedby="holder-error" />
+                @if(attempted() && holder.trim().length<3){<small id="holder-error" class="field-error">Escribe el nombre del titular.</small>}
+                <label for="card-number">Número de tarjeta <span class="field-hint">{{cardBrand()}}</span></label><input id="card-number" name="cardNumber" [ngModel]="cardNumber" (ngModelChange)="numberInput($event)" inputmode="numeric" autocomplete="cc-number" maxlength="23" placeholder="0000 0000 0000 0000" [attr.aria-invalid]="attempted() && !cardValid()" aria-describedby="number-error" />
+                @if(attempted() && !cardValid()){<small id="number-error" class="field-error">Revisa el número de tu tarjeta.</small>}
+                <div class="card-fields"><div><label for="card-expiry">Vencimiento</label><input id="card-expiry" name="expiry" [ngModel]="expiry" (ngModelChange)="expiryInput($event)" inputmode="numeric" autocomplete="cc-exp" maxlength="5" placeholder="MM/AA" [attr.aria-invalid]="attempted() && !expiryValid()" aria-describedby="expiry-error" />@if(attempted() && !expiryValid()){<small id="expiry-error" class="field-error">Ingresa una fecha vigente (MM/AA).</small>}</div>
+                <div><label for="card-cvv">Código de seguridad</label><div class="cvv-input"><input id="card-cvv" name="cvv" [type]="showCvv()?'text':'password'" [ngModel]="cvv" (ngModelChange)="cvvInput($event)" inputmode="numeric" autocomplete="off" [maxlength]="cardBrand()==='American Express'?4:3" [placeholder]="cardBrand()==='American Express'?'4 dígitos':'3 dígitos'" [attr.aria-invalid]="attempted() && !cvvValid()" aria-describedby="cvv-help cvv-error" /><button type="button" (click)="showCvv.set(!showCvv())" [attr.aria-label]="showCvv()?'Ocultar código de seguridad':'Mostrar código de seguridad'">{{showCvv()?'Ocultar':'Ver'}}</button></div><small id="cvv-help" class="field-help">{{cardBrand()==='American Express'?'4 dígitos en el frente de tu tarjeta.':'3 dígitos en el reverso de tu tarjeta.'}}</small>@if(attempted() && !cvvValid()){<small id="cvv-error" class="field-error">Revisa el código de seguridad.</small>}</div></div>
+              } @else if(method==='BILLETERA') {
+                <p>Elige la billetera vinculada a tu celular.</p><fieldset class="wallet-options"><legend class="sr-only">Billetera digital</legend>@for(option of ['Yape','Plin'];track option){<label [class.chosen]="wallet===option"><input type="radio" name="wallet" [value]="option" [(ngModel)]="wallet" />{{option}}</label>}</fieldset><label for="wallet-phone">Número de celular</label><div class="phone-field"><span>+51</span><input id="wallet-phone" name="phone" type="tel" inputmode="numeric" [(ngModel)]="phone" maxlength="9" placeholder="9XX XXX XXX" autocomplete="tel-national" [attr.aria-invalid]="attempted() && !detailsValid()" /></div>@if(attempted() && !detailsValid()){<small class="field-error">Ingresa un celular de 9 dígitos que empiece con 9.</small>}
+              } @else {
+                <p>Selecciona el banco desde el que realizarás la transferencia.</p><label for="transfer-bank">Tu banco</label><select id="transfer-bank" name="bank" [(ngModel)]="bank"><option value="" disabled>Selecciona un banco</option>@for(option of banks;track option){<option [value]="option">{{option}}</option>}</select>@if(attempted() && !bank){<small class="field-error">Selecciona tu banco para continuar.</small>}
+              }
+              <button class="button button-dark wide" type="submit">Revisar datos →</button><button class="quiet" type="button" (click)="step.set(1); attempted.set(false)">Cambiar método</button>
+            </form>
+          } @else {
+            <h2>Revisa tu selección</h2><dl class="review"><div><dt>Producto</dt><dd>{{p.titulo}}</dd></div><div><dt>Método</dt><dd>{{methodTitle()}}</dd></div>@if(method==='TARJETA'){<div><dt>Tarjeta</dt><dd>{{cardBrand()}} · •••• {{cardSuffix()}}</dd></div><div><dt>Titular</dt><dd>{{holder}}</dd></div>}@else if(method==='BILLETERA'){<div><dt>Billetera</dt><dd>{{wallet}} · +51 {{phone}}</dd></div>}@else{<div><dt>Banco</dt><dd>{{bank}}</dd></div>}<div><dt>Total{{p.periodo?' '+p.periodo:''}}</dt><dd>{{p.monto | currency:p.moneda:(p.moneda==='PEN'?'S/':p.moneda):'1.2-2'}}</dd></div></dl>
+            <button class="button button-dark wide" type="button" (click)="pay()">Continuar al pago →</button><button class="quiet" type="button" (click)="step.set(2)">Editar datos</button>
+          }
+        </div>
+        <aside class="flow-card summary"><span class="eyebrow">RESUMEN</span><span class="product-kind">{{p.tipo==='ia'?'PLAN DE INTELIGENCIA ARTIFICIAL':'CURSO'}}</span><h2>{{p.titulo}}</h2><p>{{p.tipo==='ia'?'Suscripción de IA independiente de los cursos.':'Acceso al curso seleccionado.'}}</p><div class="total"><span>{{p.periodo?'Precio '+p.periodo:'Precio del curso'}}</span><strong>{{p.monto | currency:p.moneda:(p.moneda==='PEN'?'S/':p.moneda):'1.2-2'}}</strong></div><small>Moneda: {{p.moneda}}</small></aside>
+      </div>
+    }
+  }
+</section>

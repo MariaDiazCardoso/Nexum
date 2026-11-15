@@ -1,0 +1,204 @@
+<div class="workspace">
+  <nav class="side-nav" aria-label="Mi espacio">
+    <p class="eyebrow">TU ESPACIO NEXUM</p>
+    <h2>{{ auth.isAdmin() ? 'Administra tu espacio.' : 'Crece a tu ritmo.' }}</h2>
+    <a routerLink="/profile" [class.selected]="page === 'profile'">Mi perfil</a>
+    @if (auth.isAdmin()) {
+      <a routerLink="/admin">Panel administrador</a>
+    } @else {
+      <a routerLink="/my-learning">Mis cursos</a>
+      <a routerLink="/medals" [class.selected]="page === 'medals'">Mis medallas</a>
+      <a routerLink="/certificates" [class.selected]="page === 'certificates'">Mis certificados</a>
+      <div class="side-note"><span class="spark">✦</span><p>Cada pequeño avance abre una nueva posibilidad.</p></div>
+    }
+  </nav>
+  <section class="content">
+    <header>
+      <p class="eyebrow">{{ auth.isAdmin() ? 'MI CUENTA DE ADMINISTRACIÓN' : 'TU CAMINO DE APRENDIZAJE' }}</p>
+      <h1>
+        {{
+          page === 'profile'
+            ? 'Mi perfil'
+            : page === 'medals'
+              ? 'Mis medallas'
+              : 'Mis certificados'
+        }}<span>.</span>
+      </h1>
+      <p>
+        {{
+          page === 'profile'
+            ? (auth.isAdmin() ? 'Administra tu información personal.' : 'Un espacio para presentarte y ver tu avance.')
+            : page === 'medals'
+              ? 'Reconocimientos de tu recorrido en Nexum.'
+              : 'Tus cursos completados dejan huella.'
+        }}
+      </p>
+    </header>
+    @if (loading()) {
+      <p role="status">Cargando tu información…</p>
+    } @else if (error()) {
+      <div class="notice" role="alert">
+        {{ error() }}
+        <button class="button button-lime" (click)="load()" type="button">Volver a cargar</button>
+      </div>
+    }
+    @if (!loading() && !error()) {
+      @if (page === 'profile') {
+        <div class="profile-grid">
+          <article class="card identity">
+            <div class="avatar">
+              @if (avatarImage(); as avatar) {
+                <img [src]="avatar" alt="Tu foto de perfil" (error)="imageFailed.set(true)" />
+              } @else {
+                {{ (auth.user()?.nombre ?? '').slice(0, 1)
+                }}{{ (auth.user()?.apellido ?? '').slice(0, 1) }}
+              }
+            </div>
+            <h2>{{ auth.user()?.nombre }} {{ auth.user()?.apellido }}</h2>
+            <p>{{ auth.isAdmin() ? 'Administrador de Nexum' : 'Tu aprendizaje, a tu manera.' }}</p>
+            <hr />
+            @if (!auth.isAdmin()) {
+            <div class="stat-row">
+              <span
+                ><strong>{{ auth.user()?.puntosXp ?? 0 }}</strong
+                >XP acumulados</span
+              >
+            </div>
+            }
+            <p>En Nexum desde {{ auth.user()?.fechaRegistro | date: 'dd/MM/yyyy' }}</p>
+            @if (auth.isAdmin()) {
+              <a routerLink="/admin" class="text-link">Ir al panel administrador →</a>
+            } @else {
+              <a routerLink="/my-learning" class="text-link">Continuar aprendiendo →</a>
+            }
+          </article>
+          <form class="card" #profileForm="ngForm" (ngSubmit)="save()">
+            <p class="eyebrow">MI INFORMACIÓN</p>
+            <h2>Así te presentamos.</h2>
+            <div class="field-grid">
+              <label
+                >Nombre<input
+                  name="nombre"
+                  [(ngModel)]="nombre"
+                  required
+                  maxlength="100"
+                  autocomplete="given-name" /></label
+              ><label
+                >Apellido<input
+                  name="apellido"
+                  [(ngModel)]="apellido"
+                  required
+                  maxlength="100"
+                  autocomplete="family-name"
+              /></label>
+            </div>
+            <label
+              >Correo electrónico<input
+                name="email"
+                [(ngModel)]="email"
+                readonly
+                type="email"
+                maxlength="255"
+                autocomplete="email" /></label
+            ><small
+              >El cambio de correo requiere un flujo de verificación que todavía no está
+              disponible.</small
+            >
+            <div class="photo-upload">
+              <span class="photo-label">Foto de perfil</span>
+              <p>Elige una foto JPG o PNG de hasta 5 MB. Se guarda al subirla. Sin foto se mostrarán tus iniciales.</p>
+              <div class="photo-actions">
+                <label class="button button-lime upload-label" [class.busy]="uploading() || saving()">
+                  {{ uploading() ? 'Guardando foto…' : avatarUrl ? 'Cambiar foto' : 'Subir foto' }}
+                  <input type="file" accept="image/jpeg,image/png" aria-label="Subir foto de perfil" (change)="uploadPhoto($event)" [disabled]="uploading() || saving()" />
+                </label>
+                @if (avatarUrl) { <button type="button" class="remove-photo" (click)="removePhoto()" [disabled]="uploading() || saving()">Quitar foto</button> }
+              </div>
+              @if (uploading()) { <small role="status">Guardando tu foto…</small> }
+              @if (photoError()) { <p class="photo-error" role="alert">{{ photoError() }}</p> }
+              @if (notice()) { <p role="status">{{ notice() }}</p> }
+            </div>
+            <div class="verified">
+              {{
+                auth.user()?.emailVerificado
+                  ? '✓ Correo verificado'
+                  : 'Correo pendiente de verificación'
+              }}
+            </div>
+            @if (auth.user(); as user) {
+              @if (!user.emailVerificado) {
+                <a class="button button-dark" routerLink="/verify-email"
+                  [queryParams]="{ email: user.email }">Verificar mi correo</a>
+              }
+            }
+            <button
+              class="button button-dark"
+              [disabled]="saving() || uploading() || profileForm.invalid"
+              type="submit"
+            >
+              {{ saving() ? 'Guardando…' : 'Guardar cambios →' }}
+            </button>
+          </form>
+        </div>
+      } @else if (page === 'medals') {
+        @if (medals().length) {
+          <div class="badges">
+            @for (medal of medals(); track medal.medallaId) {
+              <article class="card badge">
+                <div class="badge-icon">
+                  @if (safeUrl(medal.imagenUrl); as image) {
+                    <img [src]="image" [alt]="medal.nombre" width="64" height="64" />
+                  } @else {
+                    ✦
+                  }
+                </div>
+                <h3>{{ medal.nombre }}</h3>
+                <p>{{ medal.descripcion }}</p>
+                <small>Obtenida el {{ medal.fechaObtencion | date: 'dd/MM/yyyy' }}</small>
+              </article>
+            }
+          </div>
+        } @else {
+          <article class="card centered">
+            <div class="symbol">✦</div>
+            <h2>Tu colección está por empezar.</h2>
+            <p>Todavía no tienes medallas asignadas. Sigue avanzando en tus cursos.</p>
+            <a class="button button-dark" routerLink="/my-learning">Volver a mis cursos →</a>
+          </article>
+        }
+      } @else {
+        @if (certificates().length) {
+          @for (certificate of certificates(); track certificate.id) {
+            <article class="card certificate">
+              <div>
+                <p class="eyebrow">CURSO COMPLETADO</p>
+                <h2>{{ certificate.tituloCurso || courseTitle(certificate.cursoId) }}</h2>
+                <p>Emitido el {{ certificate.fechaEmision | date: 'dd/MM/yyyy' }}</p>
+                <p class="certificate-code">Código: {{ certificate.codigoVerificacion }}</p>
+              </div>
+              <div>
+                <button class="button button-dark" type="button" (click)="downloadCertificate(certificate)" [disabled]="downloadingCertificate() !== null">{{ downloadingCertificate() === certificate.id ? 'Preparando PDF…' : 'Descargar certificado ↓' }}</button>
+                <a class="text-link" routerLink="/verify-certificate" [queryParams]="{ codigo: certificate.codigoVerificacion }">Verificar autenticidad →</a>
+                <a class="text-link" [routerLink]="['/courses', certificate.cursoId]"
+                  >Ver el curso →</a
+                >
+              </div>
+            </article>
+          }
+        } @else {
+          <article class="card centered">
+            <div class="symbol">↗</div>
+            <h2>Tu siguiente logro te espera.</h2>
+            <p>
+              Aquí aparecerán tus certificados cuando completes las lecciones y apruebes las evaluaciones de tus cursos.
+            </p>
+            <a class="button button-dark" routerLink="/my-learning">Continuar aprendiendo →</a>
+          </article>
+        }
+      }
+    }
+    @if (notice()) {
+      <p class="notice" role="status">{{ notice() }}</p>
+    }
+  </section>
+</div>
